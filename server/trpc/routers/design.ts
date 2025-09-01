@@ -7,7 +7,7 @@ export const designRouter = router({
     .input(
       z.object({
         id: z.string().min(1),
-        snapshot: z.unknown(), // JSON del tldraw
+        snapshot: z.unknown(),
       })
     )
     .mutation(({ input }) => {
@@ -20,5 +20,11 @@ export const designRouter = router({
     .query(({ input }) => {
       const rec = memoryDb.get(input.id)
       return rec ? { found: true, snapshot: rec.snapshot, updatedAt: rec.updatedAt } : { found: false }
+    }),
+
+  list: publicProcedure
+    .input(z.void()) 
+    .query(() => {
+      return memoryDb.list()
     }),
 })

@@ -15,4 +15,13 @@ export const memoryDb = {
   get(id: string) {
     return store.get(id) ?? null
   },
+  list() {
+    return Array.from(store.values())
+      .sort((a, b) => b.updatedAt - a.updatedAt)
+      .map((r) => ({
+        id: r.id,
+        updatedAt: r.updatedAt,
+        size: typeof r.snapshot === 'undefined' ? 0 : JSON.stringify(r.snapshot).length,
+      }))
+  },
 }

@@ -1,39 +1,29 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import TldrawEditor from './TldrawEditor'
 import { trpc } from '@/server/trpc/client'
+import type { Editor } from '@tldraw/tldraw'
 
-type Props = { designId: string }
+type Props = {
+  designId: string
+  initialSnapshot: unknown | null
+}
 
-export default function TldrawPage({ designId }: Props) {
-  const [status, setStatus] = useState<'idle'|'loading'|'saving'|'saved'|'error'>('idle')
-  const editorRef = useRef<import('@tldraw/tldraw').Editor | null>(null)
+export default function TldrawPage({ designId, initialSnapshot }: Props) {
+  const [status, setStatus] = useState<'idle'|'saving'|'saved'|'error'>('idle')
+  const editorRef = useRef<Editor | null>(null)
 
-  // Query per carregar el disseny si existeix
-  const getQuery = trpc.design.get.useQuery({ id: designId }, { enabled: false })
   const saveMutation = trpc.design.save.useMutation()
 
-  // Carregar en montar
-  useEffect(() => {
-    const load = async () => {
-      setStatus('loading')
-      const res = await getQuery.refetch()
-      const editor = editorRef.current
-      try {
-        if (editor && res.data?.found) {
-          // Carregar snapshot a l'editor
-          // @ts-expect-error tipus interns de tldraw
-          editor.store.loadSnapshot(res.data.snapshot)
-        }
-        setStatus('idle')
-      } catch (e) {
-        console.error(e)
-        setStatus('error')
-      }
+  const handleReady = (editor: Editor) => {
+    editorRef.current = editor
+    if (initialSnapshot) {
+      // tldraw accepta el snapshot JSON serialitzable
+      // @ts-expect-error tipus interns de tldraw
+      editor.store.loadSnapshot(initialSnapshot)
     }
-    load()
-  }, [designId])
+  }
 
   const handleSave = async () => {
     const editor = editorRef.current
@@ -43,7 +33,7 @@ export default function TldrawPage({ designId }: Props) {
       const snapshot = editor.store.getSnapshot()
       await saveMutation.mutateAsync({ id: designId, snapshot })
       setStatus('saved')
-      setTimeout(() => setStatus('idle'), 1000)
+      setTimeout(() => setStatus('idle'), 800)
     } catch (e) {
       console.error(e)
       setStatus('error')
@@ -52,7 +42,7 @@ export default function TldrawPage({ designId }: Props) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
-      {/* HEADER de 75px */}
+      {/* HEADER 75px */}
       <header
         style={{
           height: 75,
@@ -69,7 +59,6 @@ export default function TldrawPage({ designId }: Props) {
           Desa
         </button>
         <span style={{ fontSize: 12, opacity: 0.7 }}>
-          {status === 'loading' && 'Carregant…'}
           {status === 'saving' && 'Desant…'}
           {status === 'saved' && 'Desat ✓'}
           {status === 'error' && 'Error'}
@@ -78,7 +67,7 @@ export default function TldrawPage({ designId }: Props) {
 
       {/* CONTINGUT */}
       <main style={{ flex: 1, position: 'relative' }}>
-        <TldrawEditor onEditorReady={(editor) => (editorRef.current = editor)} />
+        <TldrawEditor onEditorReady={handleReady} />
       </main>
     </div>
   )
