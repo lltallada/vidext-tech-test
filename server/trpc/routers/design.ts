@@ -27,4 +27,11 @@ export const designRouter = router({
     .query(() => {
       return memoryDb.list()
     }),
+
+  delete: publicProcedure
+    .input(z.object({ id: z.string().min(1) }))
+    .mutation(({ input }) => {
+      const ok = memoryDb.delete(input.id)
+      return ok ? { ok: true } : { ok: false, reason: 'not_found' as const }
+    }),
 })

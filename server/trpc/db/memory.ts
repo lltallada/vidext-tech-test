@@ -24,4 +24,7 @@ export const memoryDb = {
         size: typeof r.snapshot === 'undefined' ? 0 : JSON.stringify(r.snapshot).length,
       }))
   },
+  delete(id: string) {
+    return store.delete(id)
+  },
 }
