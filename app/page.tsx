@@ -1,18 +1,40 @@
-import { getBaseUrl } from '@/app/lib/getBaseUrl'
-import DrawsListing from '@/app/components/DrawsListing'
+'use client';
 
-export const revalidate = 0
-export const dynamic = 'force-dynamic'
+import React from 'react';
+import Link from 'next/link';
+import { trpc } from '@/server/trpc/client';
+import DrawsListing from '@/app/components/draw/DrawsListing';
+import Header from '@/app/components/ui/Header';
 
-type Row = { id: string; updatedAt: number; size: number }
+type Row = { id: string; updatedAt: number; size: number };
 
-export default async function DesignsPage() {
-  const base = await getBaseUrl()
-  const res = await fetch(`${base}/api/trpc/design.list`, { cache: 'no-store' })
-  if (!res.ok) throw new Error('Failed to fetch design list')
+export default function DesignsPage() {
+  const { data, isLoading, isError, error } = trpc.design.list.useQuery(
+    undefined,
+    {
+      refetchOnWindowFocus: false,
+    }
+  );
 
-  const payload = await res.json()
-  const rows: Row[] = payload?.result?.data ?? []
+  const rows: Row[] = data ?? [];
 
-  return <DrawsListing initialRows={rows} />
+  return (
+    <main>
+      <Header />
+
+      <section>
+        <Link href="/draw/test">Go to editor</Link>
+
+        {isLoading ? (
+          <p>Loading…</p>
+        ) : isError ? (
+          <p style={{ color: 'red' }}>
+            Error: {(error as any)?.message ?? 'Failed to load'}
+          </p>
+        ) : (
+          <DrawsListing initialRows={rows} />
+        )}
+      </section>
+    </main>
+  );
 }
