@@ -30,6 +30,7 @@ function DrawListingItem({ row }: { row: Row }) {
           id={row.id}
           buttonText="Delete"
           buttonVariant="danger"
+          onClose={() => {}}
         />
       </div>
     </li>

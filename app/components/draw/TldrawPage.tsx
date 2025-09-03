@@ -17,10 +17,7 @@ type Props = {
 
 export default function TldrawPage({ designId, initialSnapshot }: Props) {
   // moved editor logic to hook
-  const { status, handleReady, selectedShapes } = useTldrawEditor(
-    designId,
-    initialSnapshot
-  );
+  const { status, handleReady } = useTldrawEditor(designId, initialSnapshot);
 
   function customTldrawHeader() {
     const editor = useEditor();

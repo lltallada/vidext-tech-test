@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { Button } from '../ui/button';
 import {
   Dialog,
@@ -18,28 +18,41 @@ export default function DeleteDrawDialog({
   buttonText = 'New Design',
   buttonVariant = 'vidext',
   id,
+  onClose,
 }: {
   buttonText?: string;
   buttonVariant?: React.ComponentProps<typeof Button>['variant'];
   id: string;
+  onClose: () => void;
 }) {
   const [visible, setVisible] = useState(true);
-  const del = trpc.design.delete.useMutation();
+  const utils = trpc.useContext();
 
-  const handleDelete = async (id: string) => {
-    const confirmDelete = window.confirm(`Segur que vols esborrar "${id}"?`);
-    if (!confirmDelete) return;
+  const deleteMutation = trpc.design.delete.useMutation({
+    onMutate: async ({ id: deletingId }: { id: string }) => {
+      await utils.design.list.cancel();
+      const previous = utils.design.list.getData();
+      utils.design.list.setData(undefined, old =>
+        old ? old.filter((r: any) => r.id !== deletingId) : old
+      );
+      return { previous };
+    },
+    onError: (_err, _vars, context: any) => {
+      if (context?.previous)
+        utils.design.list.setData(undefined, context.previous);
+    },
+    onSettled: async () => {
+      await utils.design.list.invalidate();
+      onClose?.();
+    },
+  });
 
-    // Optimistic UI: hide immediately
+  const handleDelete = async () => {
     setVisible(false);
     try {
-      const res = await del.mutateAsync({ id });
-      if (!res.ok) {
-        setVisible(true); // revert if not found
-        alert('No s’ha pogut esborrar (no trobat).');
-      }
+      await deleteMutation.mutateAsync({ id });
     } catch (e) {
-      setVisible(true); // revert on network/error
+      setVisible(true);
       alert('Error en esborrar.');
     }
   };
@@ -71,7 +84,7 @@ export default function DeleteDrawDialog({
             onClick={e => {
               e.preventDefault();
               e.stopPropagation();
-              handleDelete(id);
+              handleDelete();
             }}
             type="button"
           >

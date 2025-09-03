@@ -1,6 +1,7 @@
+import _ from 'lodash';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { trpc } from '@/server/trpc/client';
-import type { Editor } from '@tldraw/tldraw';
+import type { Editor, TLEventMapHandler } from '@tldraw/tldraw';
 import {
   getSnapshot as tldrawGetSnapshot,
   loadSnapshot as tldrawLoadSnapshot,
@@ -14,6 +15,8 @@ export default function useTldrawEditor(
     'idle'
   );
   const editorRef = useRef<Editor | null>(null);
+  // tick/state to signal when editorRef.current has been set (refs don't cause re-renders)
+  const [editorReadyTick, setEditorReadyTick] = useState(0);
 
   type SaveInput = { id: string; snapshot: unknown };
   const saveMutation = trpc.design.save.useMutation<SaveInput>();
@@ -44,6 +47,8 @@ export default function useTldrawEditor(
   const handleReady = useCallback(
     (editor: Editor) => {
       editorRef.current = editor;
+      // ensure effects that need the editor run by forcing a render
+      setEditorReadyTick(t => t + 1);
 
       if (initialSnapshot) {
         let snapToLoad: any = initialSnapshot;
@@ -80,68 +85,6 @@ export default function useTldrawEditor(
         lastSavedSnapshotRef.current = s;
       } catch {
         // ignore stringify errors
-      }
-
-      // Prefer event-driven change detection if available
-      try {
-        const sideEffects: any = (editor as any).sideEffects;
-        if (
-          sideEffects &&
-          typeof sideEffects.registerAfterChangeHandler === 'function'
-        ) {
-          // Register a handler that computes a small fingerprint of document content (shapes/pages)
-          const disposer = sideEffects.registerAfterChangeHandler(() => {
-            try {
-              const snap: any = readSnapshot(editor) ?? {};
-              const inner = snap.store ?? snap;
-              const shapes = inner.shapes ?? {};
-              const pages = inner.document?.pages ?? inner.pages ?? {};
-              // lightweight fingerprint: keys only (sorted) — avoids selection/appState noise
-              const fp = JSON.stringify({
-                shapes: Object.keys(shapes).sort(),
-                pages: Object.keys(pages).sort(),
-              });
-              if (lastKnownSnapshotRef.current !== fp) {
-                lastKnownSnapshotRef.current = fp;
-                // Debounce/save mechanism (reuse your existing debounceTimerRef pattern)
-                if (debounceTimerRef.current)
-                  window.clearTimeout(debounceTimerRef.current);
-                debounceTimerRef.current = window.setTimeout(async () => {
-                  if (isSavingRef.current) return;
-                  if (
-                    lastSavedSnapshotRef.current ===
-                    lastKnownSnapshotRef.current
-                  )
-                    return;
-                  const snapToSave = readSnapshot(editor) ?? {};
-                  try {
-                    isSavingRef.current = true;
-                    setStatus('saving');
-
-                    // saving without thumbnail
-                    await saveMutation.mutateAsync({
-                      id: designId,
-                      snapshot: snapToSave,
-                    });
-                    lastSavedSnapshotRef.current = lastKnownSnapshotRef.current;
-                    setStatus('saved');
-                    setTimeout(() => setStatus('idle'), 800);
-                  } catch (e) {
-                    console.error(e);
-                    setStatus('error');
-                  } finally {
-                    isSavingRef.current = false;
-                  }
-                }, 500);
-              }
-            } catch {
-              // ignore read errors inside handler
-            }
-          });
-          changeDisposerRef.current = disposer;
-        }
-      } catch {
-        // ignore if API absent or fails — polling fallback will run
       }
     },
     [initialSnapshot, readSnapshot, designId, saveMutation]
@@ -230,85 +173,117 @@ export default function useTldrawEditor(
   }, [readSnapshot]);
 
   useEffect(() => {
-    const pollInterval = 700;
-    const debounceMs = 800;
+    /* CHECK HERE */
+    const editor = editorRef.current;
+    if (!editor) return;
 
-    function startPolling() {
-      if (pollingTimerRef.current) {
-        window.clearInterval(pollingTimerRef.current);
-      }
-      pollingTimerRef.current = window.setInterval(() => {
-        const editor = editorRef.current;
-        if (!editor) return;
-
-        try {
-          const ids = getSelectedIds();
-          setSelectedShapes(ids);
-        } catch {
-          // ignore
+    //[1]
+    const handleChangeEvent: TLEventMapHandler<'change'> = change => {
+      // helper to debounce & perform same save logic used elsewhere
+      const scheduleSave = () => {
+        if (debounceTimerRef.current) {
+          window.clearTimeout(debounceTimerRef.current);
         }
-
-        let curStr: string;
-        try {
-          const snap = readSnapshot(editor) ?? {};
-          curStr = JSON.stringify(snap);
-        } catch {
-          return;
-        }
-        if (lastKnownSnapshotRef.current !== curStr) {
-          lastKnownSnapshotRef.current = curStr;
-          if (debounceTimerRef.current) {
-            window.clearTimeout(debounceTimerRef.current);
+        debounceTimerRef.current = window.setTimeout(async () => {
+          if (isSavingRef.current) return;
+          let snapToSave: any;
+          try {
+            snapToSave = readSnapshot(editor) ?? {};
+          } catch {
+            return;
           }
-          debounceTimerRef.current = window.setTimeout(async () => {
-            if (isSavingRef.current) return;
-            if (lastSavedSnapshotRef.current === lastKnownSnapshotRef.current)
-              return;
-            const snapToSave = readSnapshot(editor) ?? {};
-            try {
-              isSavingRef.current = true;
-              setStatus('saving');
+          let snapStr: string;
+          try {
+            snapStr = JSON.stringify(snapToSave);
+          } catch {
+            // fallback: don't save if we cannot stringify
+            return;
+          }
+          // Avoid saving if nothing meaningful changed since last save
+          if (lastSavedSnapshotRef.current === snapStr) {
+            return;
+          }
 
-              // save without thumbnail
-              await saveMutation.mutateAsync({
-                id: designId,
-                snapshot: snapToSave,
-              });
+          try {
+            isSavingRef.current = true;
+            setStatus('saving');
 
-              lastSavedSnapshotRef.current = lastKnownSnapshotRef.current;
-              setStatus('saved');
-              setTimeout(() => setStatus('idle'), 800);
-            } catch (e) {
-              console.error(e);
-              setStatus('error');
-            } finally {
-              isSavingRef.current = false;
-            }
-          }, debounceMs);
-        }
-      }, pollInterval);
-    }
+            await saveMutation.mutateAsync({
+              id: designId,
+              snapshot: snapToSave,
+            });
 
-    startPolling();
+            lastSavedSnapshotRef.current = snapStr;
+            lastKnownSnapshotRef.current = snapStr;
+            setStatus('saved');
+            setTimeout(() => setStatus('idle'), 800);
+          } catch (e) {
+            console.error(e);
+            setStatus('error');
+          } finally {
+            isSavingRef.current = false;
+          }
+        }, 500);
+      };
 
-    return () => {
-      if (changeDisposerRef.current) {
-        const d = changeDisposerRef.current;
-        try {
-          if (typeof d === 'function') d();
-          else if (d?.dispose) d.dispose();
-        } catch {
-          /* ignore */
+      // Added
+      for (const record of Object.values(change.changes.added)) {
+        if (record.typeName === 'shape') {
+          scheduleSave();
+          console.log('must save');
+          break;
         }
       }
-      if (pollingTimerRef.current) {
-        window.clearInterval(pollingTimerRef.current);
+
+      // Updated
+      for (const [from, to] of Object.values(change.changes.updated)) {
+        if (from.id.startsWith('shape') && to.id.startsWith('shape')) {
+          let diff = _.reduce(
+            from,
+            (result: any[], value, key: string) =>
+              _.isEqual(value, (to as any)[key])
+                ? result
+                : result.concat([key, (to as any)[key]]),
+            []
+          );
+          if (diff?.[0] === 'props') {
+            diff = _.reduce(
+              (from as any).props,
+              (result: any[], value, key) =>
+                _.isEqual(value, (to as any).props[key])
+                  ? result
+                  : result.concat([key, (to as any).props[key]]),
+              []
+            );
+          }
+          scheduleSave();
+          console.log('must save');
+
+          break;
+        }
       }
-      if (debounceTimerRef.current) {
-        window.clearTimeout(debounceTimerRef.current);
+
+      // Removed
+      for (const record of Object.values(change.changes.removed)) {
+        if (record.typeName === 'shape') {
+          scheduleSave();
+          console.log('must save');
+
+          break;
+        }
       }
     };
-  }, [designId, saveMutation, readSnapshot, getSelectedIds]);
+
+    // [2]
+    const cleanupFunction = editor.store.listen(handleChangeEvent, {
+      source: 'user',
+      scope: 'all',
+    });
+
+    return () => {
+      cleanupFunction();
+    };
+  }, [editorReadyTick]); // re-run when handleReady set the editor and bumped the
 
   return {
     editorRef,
