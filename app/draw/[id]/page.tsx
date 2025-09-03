@@ -1,27 +1,35 @@
-import TldrawPage from '@/app/components/TldrawPage'
-import { getBaseUrl } from '@/app/lib/getBaseUrl'
+'use client';
 
-export const revalidate = 0
-export const dynamic = 'force-dynamic'
+import { trpc } from '@/server/trpc/client';
+import { useParams } from 'next/navigation';
+import TldrawPage from '@/app/components/draw/TldrawPage';
+import { LoaderCircle } from 'lucide-react';
 
+export default function Page() {
+  const { id } = useParams();
 
-type Params = { id: string }
+  const designId = Array.isArray(id) ? id[0] : id;
 
-export default async function Page(props: { params: Promise<Params> }) {
-  const { id } = await props.params
-  const base = await getBaseUrl()
-  const input = encodeURIComponent(JSON.stringify({ id }))
-  const url = `${base}/api/trpc/design.get?input=${input}`
+  if (!designId) return <p>Missing id</p>;
 
-  const res = await fetch(url, { cache: 'no-store' })
-  if (!res.ok) throw new Error('Failed to fetch design')
+  const { data, isLoading, isError, error } = trpc.design.get.useQuery(
+    { id: designId },
+    {
+      refetchOnWindowFocus: false,
+    }
+  );
 
-  const payload = await res.json()
-  const data = payload?.result?.data as
-    | { found: true; snapshot: unknown; updatedAt: number }
-    | { found: false }
+  const initialSnapshot =
+    data?.found && 'snapshot' in data ? data.snapshot : null;
 
-  const initialSnapshot = data?.found ? data.snapshot : null
+  if (isLoading)
+    return (
+      <div className="absolute inset-0 flex items-center justify-center">
+        <LoaderCircle className="animate-spin" />
+      </div>
+    );
 
-  return <TldrawPage designId={id} initialSnapshot={initialSnapshot} />
+  if (isError) return <p>Error: {String(error?.message ?? error)}</p>;
+
+  return <TldrawPage designId={designId} initialSnapshot={initialSnapshot} />;
 }
