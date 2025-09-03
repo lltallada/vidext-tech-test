@@ -1,39 +1,19 @@
-'use client';
-
 import React from 'react';
-import Link from 'next/link';
-import { trpc } from '@/server/trpc/client';
 import DrawsListing from '@/app/components/draw/DrawsListing';
 import Header from '@/app/components/ui/Header';
+import Container from './components/ui/Container';
+import NewDrawDialog from './components/draw/NewDrawDialog';
 
-type Row = { id: string; updatedAt: number; size: number };
-
-export default function DesignsPage() {
-  const { data, isLoading, isError, error } = trpc.design.list.useQuery(
-    undefined,
-    {
-      refetchOnWindowFocus: false,
-    }
-  );
-
-  const rows: Row[] = data ?? [];
-
+export default function Page() {
   return (
     <main>
-      <Header />
-
+      <Header>
+        <NewDrawDialog buttonText="New Design" />
+      </Header>
       <section>
-        <Link href="/draw/test">Go to editor</Link>
-
-        {isLoading ? (
-          <p>Loading…</p>
-        ) : isError ? (
-          <p style={{ color: 'red' }}>
-            Error: {(error as any)?.message ?? 'Failed to load'}
-          </p>
-        ) : (
-          <DrawsListing initialRows={rows} />
-        )}
+        <Container className="py-10">
+          <DrawsListing />
+        </Container>
       </section>
     </main>
   );

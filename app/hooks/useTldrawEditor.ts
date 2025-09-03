@@ -6,28 +6,17 @@ import {
   loadSnapshot as tldrawLoadSnapshot,
 } from 'tldraw';
 
-type Status = 'idle' | 'saving' | 'saved' | 'error';
-
 export default function useTldrawEditor(
   designId: string,
-  initialSnapshot: unknown | null,
-  options?: {
-    initialZoom?: 'fit' | 'fit-x' | 'fit-y' | number;
-    fitPadding?: number;
-    fitAttempts?: number;
-    fitDelay?: number;
-  }
+  initialSnapshot: unknown | null
 ) {
-  const {
-    initialZoom,
-    fitPadding = 40,
-    fitAttempts = 3,
-    fitDelay = 50,
-  } = options || {};
-  const [status, setStatus] = useState<Status>('idle');
+  const [status, setStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>(
+    'idle'
+  );
   const editorRef = useRef<Editor | null>(null);
 
-  const saveMutation = trpc.design.save.useMutation();
+  type SaveInput = { id: string; snapshot: unknown };
+  const saveMutation = trpc.design.save.useMutation<SaveInput>();
 
   const lastKnownSnapshotRef = useRef<string | null>(null);
   const lastSavedSnapshotRef = useRef<string | null>(null);
@@ -93,95 +82,6 @@ export default function useTldrawEditor(
         // ignore stringify errors
       }
 
-      // --- new: fit / initial zoom logic (best-effort, tolerant) ---
-      try {
-        const api: any = editor;
-        // numeric zoom: set camera zoom directly if possible
-        if (typeof initialZoom === 'number') {
-          try {
-            api.setCamera?.({ ...(api.camera || {}), zoom: initialZoom });
-          } catch {
-            /* ignore */
-          }
-        } else if (initialZoom === 'fit' || !initialZoom) {
-          // run zoomToFit attempts
-          let attempt = 0;
-          const doFit = () => {
-            try {
-              api.zoomToFit?.({ padding: fitPadding });
-            } catch {
-              /* ignore */
-            }
-          };
-          const loop = () => {
-            if (attempt++ >= fitAttempts) return;
-            requestAnimationFrame(() => {
-              doFit();
-              if (attempt < fitAttempts) {
-                setTimeout(loop, fitDelay);
-              }
-            });
-          };
-          doFit();
-          loop();
-        } else if (initialZoom === 'fit-x' || initialZoom === 'fit-y') {
-          // fit, then adjust zoom to satisfy one axis
-          let attempt = 0;
-          const adjust = () => {
-            try {
-              // best-effort: read page bounds & viewport
-              const pageBounds =
-                api.getPageBounds?.() || api.store?.getPageBounds?.() || null;
-              const viewport = api.viewportSize || {
-                width: api.container?.clientWidth ?? 1,
-                height: api.container?.clientHeight ?? 1,
-              };
-              const camera = api.camera || { x: 0, y: 0, zoom: 1 };
-
-              if (pageBounds) {
-                const contentW = pageBounds[2] - pageBounds[0];
-                const contentH = pageBounds[3] - pageBounds[1];
-                if (initialZoom === 'fit-x' && contentW > 0) {
-                  const desiredZoom = viewport.width / contentW;
-                  api.setCamera?.({ ...camera, zoom: desiredZoom });
-                } else if (initialZoom === 'fit-y' && contentH > 0) {
-                  const desiredZoom = viewport.height / contentH;
-                  api.setCamera?.({ ...camera, zoom: desiredZoom });
-                }
-              }
-            } catch {
-              /* ignore */
-            }
-          };
-
-          const doFitThenAdjust = () => {
-            try {
-              api.zoomToFit?.({ padding: fitPadding });
-            } catch {
-              /* ignore */
-            }
-            requestAnimationFrame(() => {
-              adjust();
-            });
-          };
-
-          const loop = () => {
-            if (attempt++ >= fitAttempts) return;
-            requestAnimationFrame(() => {
-              doFitThenAdjust();
-              if (attempt < fitAttempts) {
-                setTimeout(loop, fitDelay);
-              }
-            });
-          };
-          doFitThenAdjust();
-          loop();
-        }
-      } catch {
-        // swallow zoom errors — optional feature only
-      }
-      // --- end fit logic ---
-
       // Prefer event-driven change detection if available
       try {
         const sideEffects: any = (editor as any).sideEffects;
@@ -217,6 +117,8 @@ export default function useTldrawEditor(
                   try {
                     isSavingRef.current = true;
                     setStatus('saving');
+
+                    // saving without thumbnail
                     await saveMutation.mutateAsync({
                       id: designId,
                       snapshot: snapToSave,
@@ -242,20 +144,11 @@ export default function useTldrawEditor(
         // ignore if API absent or fails — polling fallback will run
       }
     },
-    [
-      initialSnapshot,
-      readSnapshot,
-      designId,
-      saveMutation,
-      initialZoom,
-      fitPadding,
-      fitAttempts,
-      fitDelay,
-    ]
+    [initialSnapshot, readSnapshot, designId, saveMutation]
   );
 
   // selection state exposed to consumers
-  const [isShapeSelected, setIsShapeSelected] = useState<boolean>(false);
+  const [selectedShapes, setSelectedShapes] = useState<String[]>([]);
 
   // normalize selection across tldraw versions / snapshot shapes
   const getSelectedIds = useCallback((): string[] => {
@@ -350,7 +243,7 @@ export default function useTldrawEditor(
 
         try {
           const ids = getSelectedIds();
-          setIsShapeSelected(ids.length > 0);
+          setSelectedShapes(ids);
         } catch {
           // ignore
         }
@@ -375,10 +268,13 @@ export default function useTldrawEditor(
             try {
               isSavingRef.current = true;
               setStatus('saving');
+
+              // save without thumbnail
               await saveMutation.mutateAsync({
                 id: designId,
                 snapshot: snapToSave,
               });
+
               lastSavedSnapshotRef.current = lastKnownSnapshotRef.current;
               setStatus('saved');
               setTimeout(() => setStatus('idle'), 800);
@@ -418,6 +314,6 @@ export default function useTldrawEditor(
     editorRef,
     status,
     handleReady,
-    isShapeSelected,
+    selectedShapes,
   };
 }

@@ -1,63 +1,47 @@
-import { Row as RowType } from './DrawListingItem';
+'use client';
+
+import React from 'react';
 import DrawsListingItem from './DrawListingItem';
-import TldrawThumbnail from '../TldrawThumbnail';
+import { trpc } from '@/server/trpc/client';
+import { LoaderCircle } from 'lucide-react';
+import NewDrawDialog from './NewDrawDialog';
 
-export default function DrawsListing({
-  initialRows,
-}: {
-  initialRows: RowType[];
-}) {
+type Row = { id: string; updatedAt: number; size: number };
+
+export default function DrawsListing() {
+  const {
+    data = [],
+    isLoading,
+    isError,
+    error,
+  } = trpc.design.list.useQuery(undefined, {
+    refetchOnWindowFocus: false,
+  });
+
   return (
-    <div style={{ padding: 24 }}>
-      <h1 style={{ marginBottom: 16 }}>Dissenys en memòria</h1>
-
-      {initialRows.length === 0 ? (
-        <p>No hi ha dissenys guardats.</p>
+    <>
+      {isLoading ? (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <LoaderCircle className="animate-spin" />
+        </div>
+      ) : isError ? (
+        <p style={{ color: 'red' }}>
+          Error: {(error as any)?.message ?? 'Failed to load'}
+        </p>
+      ) : data.length === 0 ? (
+        <div className="absolute inset-0 flex flex-col gap-4 items-center justify-center">
+          <h3 className="text-2xl text-gray-700">
+            Oops! Nothing to see here… time to get creative!
+          </h3>
+          <NewDrawDialog buttonText="Let's draw!" />
+        </div>
       ) : (
-        <>
-          <div
-            style={{
-              display: 'flex',
-              gap: 12,
-              padding: '0 12px',
-              marginBottom: 8,
-              fontWeight: 'bold',
-              alignItems: 'center',
-            }}
-          >
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 12,
-                minWidth: 220,
-              }}
-            >
-              ID
-            </div>
-            <div style={{ flex: 1 }}>Darrera actualització</div>
-            <div style={{ width: 140, textAlign: 'right' }}>Mida (bytes)</div>
-            <div style={{ width: 140 }}></div>
-          </div>
-
-          <ul
-            style={{
-              listStyle: 'none',
-              padding: 0,
-              margin: 0,
-              borderTop: '1px solid #eee',
-            }}
-          >
-            {initialRows.map(r => (
-              <DrawsListingItem key={r.id} row={r}>
-                <div className="relative w-64 h-64">
-                  <TldrawThumbnail id={r.id} />
-                </div>
-              </DrawsListingItem>
-            ))}
-          </ul>
-        </>
+        <ul className="grid gap-8 md:gap-12 grid-cols-2 md:grid-cols-3">
+          {data.map((r: Row) => (
+            <DrawsListingItem key={r.id} row={r} />
+          ))}
+        </ul>
       )}
-    </div>
+    </>
   );
 }

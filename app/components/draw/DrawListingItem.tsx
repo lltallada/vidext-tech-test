@@ -1,95 +1,41 @@
 'use client';
 
 import Link from 'next/link';
-import React, { memo, useState } from 'react';
-import { trpc } from '@/server/trpc/client';
-import TldrawThumbnail from '../TldrawThumbnail';
+import React, { memo } from 'react';
+import DeleteDrawDialog from './DeleteDrawDialog';
+import TldrawImageExample from '@/app/components/draw/TldrawThumbnail';
+import 'tldraw/tldraw.css';
 
 export type Row = { id: string; updatedAt: number; size: number };
 
-function DrawListingItem({
-  row,
-  children,
-}: {
-  row: Row;
-  children: React.ReactNode;
-}) {
-  const [visible, setVisible] = useState(true);
-  const del = trpc.design.delete.useMutation();
-
-  const handleDelete = async (id: string) => {
-    const confirmDelete = window.confirm(`Segur que vols esborrar "${id}"?`);
-    if (!confirmDelete) return;
-
-    // Optimistic UI: hide immediately
-    setVisible(false);
-    try {
-      const res = await del.mutateAsync({ id });
-      if (!res.ok) {
-        setVisible(true); // revert if not found
-        alert('No s’ha pogut esborrar (no trobat).');
-      }
-    } catch (e) {
-      setVisible(true); // revert on network/error
-      alert('Error en esborrar.');
-    }
-  };
-
-  if (!visible) return null;
-
+function DrawListingItem({ row }: { row: Row }) {
   return (
-    <li
-      style={{
-        display: 'flex',
-        gap: 12,
-        padding: 12,
-        borderBottom: '1px solid #eee',
-        alignItems: 'center',
-      }}
-    >
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 12,
-          minWidth: 220,
-        }}
-      >
-        {/* render thumbnail inside client component */}
-        {children}
+    <li className="bg-white group aspect-square rounded-2xl border border-gray-300 flex items-center justify-center text-gray-500 hover:text-gray-700 hover:border-gray-400 cursor-pointer relative overflow-hidden">
+      <div className="absolute inset-0">
+        <TldrawImageExample id={row.id} />
       </div>
+      <Link
+        href={`/draw/${encodeURIComponent(row.id)}`}
+        className="flex w-full h-full flex-col relative"
+      />
+      <div className="bg-black/70 text-white p-4 absolute bottom-0 left-0 right-0 group-hover:translate-y-0 translate-y-full transition-transform flex items-center justify-between">
+        <div>
+          <p className="font-bold">{row.id}</p>
+          <p className="text-sm text-gray-300">
+            {new Date(row.updatedAt).toLocaleString()}
+          </p>
+        </div>
 
-      <div style={{ flex: 1, color: '#555' }}>
-        {new Date(row.updatedAt).toLocaleString()}
-      </div>
-
-      <div style={{ width: 140, textAlign: 'right' }}>
-        {row.size.toLocaleString()}
-      </div>
-
-      <div style={{ width: 140, marginLeft: 12, whiteSpace: 'nowrap' }}>
-        <Link
-          href={`/draw/${encodeURIComponent(row.id)}`}
-          style={{ marginRight: 8 }}
-        >
-          Obrir
-        </Link>
-        <button
-          onClick={() => handleDelete(row.id)}
-          style={{
-            padding: '6px 10px',
-            border: '1px solid #d33',
-            borderRadius: 6,
-            color: '#d33',
-            background: 'transparent',
-          }}
-        >
-          Esborra
-        </button>
+        <DeleteDrawDialog
+          id={row.id}
+          buttonText="Delete"
+          buttonVariant="danger"
+        />
       </div>
     </li>
   );
 }
 
 export const MemoDrawListingItem = memo(DrawListingItem);
+
 export default MemoDrawListingItem;
