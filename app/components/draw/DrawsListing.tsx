@@ -38,7 +38,7 @@ export default function DrawsListing() {
       ) : (
         <>
           <h1 className="text-2xl mb-4">Your Drawings</h1>
-          <ul className="grid gap-6 md:gap-8 grid-cols-2 md:grid-cols-3">
+          <ul className="grid gap-6 md:gap-8 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
             {data.map((r: Row) => (
               <DrawsListingItem key={r.id} row={r} />
             ))}

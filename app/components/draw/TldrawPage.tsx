@@ -2,7 +2,6 @@
 
 import TldrawEditor from './TldrawEditor';
 import useTldrawEditor from '../../hooks/useTldrawEditor';
-import Header from '../ui/Header';
 import Link from 'next/link';
 import { ArrowLeft, LoaderCircle } from 'lucide-react';
 import { useEditor, TLUiComponents, DefaultColorStyle } from '@tldraw/tldraw';
@@ -63,6 +62,49 @@ export default function TldrawPage({ designId, initialSnapshot }: Props) {
       return next;
     };
 
+    async function translateTexts(
+      texts: string[],
+      targetLang: string
+    ): Promise<string[]> {
+      const res = await fetch('/api/translate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ texts, targetLang }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || 'Translate failed');
+      return data.translations as string[];
+    }
+
+    function getShapeText(s: any): string {
+      const rt = s?.props?.richText;
+      if (rt?.type === 'doc' && Array.isArray(rt.content)) {
+        return rt.content
+          .flatMap(
+            (n: any) =>
+              n?.content?.map((c: any) =>
+                c?.type === 'text' ? c.text ?? '' : ''
+              ) ?? []
+          )
+          .join('\n');
+      }
+      return s?.props?.text ?? '';
+    }
+
+    // Build a minimal richText doc from plain text (keeps newlines as paragraphs)
+    function makeRichTextDoc(text: string) {
+      const paragraphs = String(text).split(/\r?\n/);
+      return {
+        type: 'doc',
+        content: paragraphs.map(line => ({
+          type: 'paragraph',
+          content: line ? [{ type: 'text', text: line }] : undefined,
+        })),
+      };
+    }
+
+    // call for testing if desired
+
     return (
       <>
         <div
@@ -87,6 +129,9 @@ export default function TldrawPage({ designId, initialSnapshot }: Props) {
               const previousSelection = [...editor.getSelectedShapeIds()];
               editor.selectAll();
 
+              const selectedIds = editor.getSelectedShapeIds();
+              console.log(selectedIds, 'selected IDs Randomize button');
+
               const nextColor = pickRandom();
               if (nextColor) {
                 editor.setStyleForSelectedShapes(DefaultColorStyle, nextColor);
@@ -100,6 +145,55 @@ export default function TldrawPage({ designId, initialSnapshot }: Props) {
             Randomize colors
           </Button>
         </div>
+        <div
+          className="absolute right-80 top-2"
+          style={{ pointerEvents: 'all' }}
+        >
+          <Button
+            size="sm"
+            onPointerDown={e => e.preventDefault()}
+            onClick={async () => {
+              const selectedShapes = editor.getSelectedShapes();
+              if (!selectedShapes?.length) return;
+
+              const shapesWithText = selectedShapes.filter(
+                (s: any) => s.type === 'text' || s.type === 'note'
+              );
+              if (!shapesWithText.length) {
+                console.log('no text selected');
+                return;
+              }
+
+              // 1) collect texts
+              const texts = shapesWithText.map(getShapeText);
+              const targetLang = 'en'; // <- or drive this from UI/state
+
+              try {
+                // 2) translate
+                const translations = await translateTexts(texts, targetLang);
+
+                // 3) apply
+                editor.run(() => {
+                  editor.updateShapes(
+                    shapesWithText.map((s: any, i: number) => ({
+                      id: s.id,
+                      type: s.type,
+                      props: {
+                        ...s.props,
+                        richText: makeRichTextDoc(translations[i]),
+                      },
+                    }))
+                  );
+                });
+              } catch (e) {
+                console.error('translation failed', e);
+              }
+            }}
+          >
+            Translate with AI
+          </Button>
+        </div>
+
         <div
           className="rounded-b-xl flex items-center justify-center absolute top-3 right-1/2 w-24 translate-x-[50%]"
           style={{
