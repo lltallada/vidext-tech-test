@@ -66,7 +66,7 @@ export default function RandomizeColorsButton({ editor }: { editor: any }) {
         editor.setSelectedShapes(previousSelection);
       }}
     >
-      Randomize colors
+      Color randomizer
     </Button>
   );
 }

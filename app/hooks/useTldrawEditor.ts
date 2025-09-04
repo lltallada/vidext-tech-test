@@ -4,7 +4,7 @@ import type { Editor, TLEventMapHandler } from '@tldraw/tldraw';
 import {
   getSnapshot as tldrawGetSnapshot,
   loadSnapshot as tldrawLoadSnapshot,
-} from 'tldraw';
+} from '@tldraw/tldraw';
 
 export default function useTldrawEditor(
   designId: string,

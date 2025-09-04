@@ -1,8 +1,8 @@
 'use client';
 
-import { Box, TldrawImage } from 'tldraw';
+import { Box, TldrawImage } from '@tldraw/tldraw';
 import { trpc } from '@/server/trpc/client';
-import 'tldraw/tldraw.css';
+import '@tldraw/tldraw/tldraw.css';
 import { LoaderCircle } from 'lucide-react';
 import { useMemo } from 'react';
 
