@@ -45,7 +45,7 @@ export default function TranslateWithAIButton({ editor }: { editor: any }) {
         }
       }}
     >
-      Translate with AI
+      English AI translator
     </Button>
   );
 }
