@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { LoaderCircle } from 'lucide-react';
 
 import { Button } from '../ui/button';
 import {
@@ -26,6 +27,7 @@ export default function NewDrawDialog({
 }) {
   const [drawingName, setDrawingName] = useState('');
   const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -87,19 +89,31 @@ export default function NewDrawDialog({
               </Button>
             </DialogClose>
 
-            {/* Use Link for navigation but prevent it when invalid */}
             <Link
               href={href}
               onClick={(e: React.MouseEvent<HTMLAnchorElement>) => {
                 if (!trimmed) {
                   e.preventDefault();
                   setError('Please provide a name for the drawing.');
+                } else {
+                  setIsLoading(true);
                 }
               }}
               className="inline-block"
             >
-              <Button type="button" variant="vidext">
-                {/* keep type button to avoid form submit via click */}Continue
+              <Button
+                type="button"
+                variant="vidext"
+                disabled={isLoading || !trimmed}
+              >
+                {isLoading ? (
+                  <>
+                    Loading
+                    <LoaderCircle size={14} className="animate-spin ml-2" />
+                  </>
+                ) : (
+                  'Continue'
+                )}
               </Button>
             </Link>
           </DialogFooter>

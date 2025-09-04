@@ -16,7 +16,6 @@ type Props = {
 };
 
 export default function TldrawPage({ designId, initialSnapshot }: Props) {
-  // moved editor logic to hook
   const { status, handleReady } = useTldrawEditor(designId, initialSnapshot);
 
   function customTldrawHeader() {
@@ -65,50 +64,63 @@ export default function TldrawPage({ designId, initialSnapshot }: Props) {
     };
 
     return (
-      <div
-        className="mt-2 rounded-b-xl flex items-center justify-center absolute top-0 right-1/2 w-[300px] translate-x-[calc(100%-100px)]"
-        style={{
-          pointerEvents: 'all',
-        }}
-      >
-        <Button size="sm" variant="ghost" asChild>
-          <Link href="/">
-            <ArrowLeft size={16} className="mr-1" />
-            Volver
-          </Link>
-        </Button>
-        <Button
-          size="sm"
-          variant="vidext"
-          onClick={() => {
-            const previousSelection = [...editor.getSelectedShapeIds()];
-            editor.selectAll();
+      <>
+        <div
+          className="absolute left-1 top-12"
+          style={{ pointerEvents: 'all' }}
+        >
+          <Button size="sm" variant="ghost" asChild>
+            <Link href="/">
+              <ArrowLeft size={16} className="mr-1" />
+              Volver
+            </Link>
+          </Button>
+        </div>
+        <div
+          className="absolute right-42 top-2"
+          style={{ pointerEvents: 'all' }}
+        >
+          <Button
+            size="sm"
+            variant="vidext"
+            onClick={() => {
+              const previousSelection = [...editor.getSelectedShapeIds()];
+              editor.selectAll();
 
-            const nextColor = pickRandom();
-            if (nextColor) {
-              editor.setStyleForSelectedShapes(DefaultColorStyle, nextColor);
-              editor.setStyleForNextShapes(DefaultColorStyle, nextColor);
-              setCurrentColor(nextColor);
-            }
+              const nextColor = pickRandom();
+              if (nextColor) {
+                editor.setStyleForSelectedShapes(DefaultColorStyle, nextColor);
+                editor.setStyleForNextShapes(DefaultColorStyle, nextColor);
+                setCurrentColor(nextColor);
+              }
 
-            editor.setSelectedShapes(previousSelection);
+              editor.setSelectedShapes(previousSelection);
+            }}
+          >
+            Randomize colors
+          </Button>
+        </div>
+        <div
+          className="rounded-b-xl flex items-center justify-center absolute top-3 right-1/2 w-24 translate-x-[50%]"
+          style={{
+            pointerEvents: 'all',
           }}
         >
-          Randomize colors
-        </Button>
-        <div className="flex items-center gap-4">
-          <span className="text-sm opacity-50">
-            {status === 'saving' && (
-              <LoaderCircle
-                size={14}
-                className="inline-block animate-spin ml-1"
-              />
-            )}
-            {status === 'saved' && 'Saved :)'}
-            {status === 'error' && 'Error'}
-          </span>
+          <div className="flex items-center gap-4">
+            <span className="text-sm opacity-25 font-light">
+              {status === 'idle' && ' '}
+              {status === 'saving' && (
+                <LoaderCircle
+                  size={14}
+                  className="inline-block animate-spin ml-1"
+                />
+              )}
+              {status === 'saved' && 'Saved!'}
+              {status === 'error' && 'Error'}
+            </span>
+          </div>
         </div>
-      </div>
+      </>
     );
   }
 
@@ -117,36 +129,8 @@ export default function TldrawPage({ designId, initialSnapshot }: Props) {
   };
 
   return (
-    <div className="flex flex-col h-dvh">
-      {/* HEADER 75px */}
-      <Header showVidextLogo={false}>
-        <div className="flex items-center gap-4">
-          <Link href="/">
-            <ArrowLeft size={24} />
-          </Link>
-
-          <span>
-            Draw name: <span className="font-bold">{designId}</span>
-          </span>
-        </div>
-
-        <div className="flex items-center gap-4">
-          <span className="text-sm opacity-50">
-            {status === 'saving' && (
-              <LoaderCircle
-                size={14}
-                className="inline-block animate-spin ml-1"
-              />
-            )}
-            {status === 'saved' && 'Saved :)'}
-            {status === 'error' && 'Error'}
-          </span>
-        </div>
-      </Header>
-
-      <main className="relative flex-1">
-        <TldrawEditor onEditorReady={handleReady} components={components} />
-      </main>
-    </div>
+    <main className="h-dvh relative flex-1">
+      <TldrawEditor onEditorReady={handleReady} components={components} />
+    </main>
   );
 }

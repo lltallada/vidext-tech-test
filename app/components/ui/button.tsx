@@ -16,12 +16,13 @@ const buttonVariants = cva(
         ghost: 'bg-transparent hover:bg-accent/50',
         link: 'underline-offset-4 hover:underline text-primary',
         danger: 'bg-red-600 text-white hover:bg-red-700',
-        vidext: 'bg-[#c2f902]',
+        vidext: 'bg-vidext-yellow',
       },
       size: {
         default: 'h-10 py-2 px-4',
         sm: 'h-9 px-3 rounded-md text-sm',
         lg: 'h-11 px-8 rounded-md text-base',
+        icon: ' h-auto w-auto aspect-square p-2 rounded-full',
       },
     },
     defaultVariants: {
@@ -39,7 +40,7 @@ export interface ButtonProps
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant, size, asChild = false, ...props }, ref) => {
-    const Comp: any = asChild ? Slot : 'button';
+    const Comp: React.ElementType = asChild ? Slot : 'button';
     return (
       <Comp
         className={cn(buttonVariants({ variant, size }), className)}

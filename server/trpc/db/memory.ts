@@ -2,18 +2,16 @@ type DesignRecord = {
   id: string;
   snapshot: unknown;
   updatedAt: number;
-  thumbnail?: string;
 };
 
 const store = new Map<string, DesignRecord>();
 
 export const memoryDb = {
-  save(id: string, snapshot: unknown, thumbnail?: string) {
+  save(id: string, snapshot: unknown) {
     const rec: DesignRecord = {
       id,
       snapshot,
       updatedAt: Date.now(),
-      thumbnail,
     };
     store.set(id, rec);
     return rec;
@@ -31,7 +29,6 @@ export const memoryDb = {
           typeof r.snapshot === 'undefined'
             ? 0
             : JSON.stringify(r.snapshot).length,
-        thumbnail: r.thumbnail,
       }));
   },
   delete(id: string) {

@@ -14,19 +14,22 @@ export default function TldrawImageExample({ id }: { id: string }) {
     }
   );
 
-  const initialSnapshot: any =
+  const initialSnapshot: unknown =
     data?.found && 'snapshot' in data ? data.snapshot : null;
 
-  const viewportPageBounds = useMemo(() => {
-    if (!initialSnapshot || !initialSnapshot.document) {
-      return new Box(0, 0, 300, 300);
+  const { viewportPageBounds, canRender } = useMemo(() => {
+    if (!initialSnapshot || !(initialSnapshot as any).document) {
+      return { viewportPageBounds: new Box(0, 0, 300, 300), canRender: false };
     }
 
-    const store: Record<string, any> = initialSnapshot.document.store || {};
-    const shapes = Object.values(store).filter(s => s?.typeName === 'shape');
+    const store: Record<string, unknown> =
+      (initialSnapshot as any).document.store || {};
+    const shapes = Object.values(store).filter(
+      s => (s as any)?.typeName === 'shape'
+    );
 
     if (shapes.length === 0) {
-      return new Box(0, 0, 300, 300);
+      return { viewportPageBounds: new Box(0, 0, 300, 300), canRender: false };
     }
 
     let minX = Infinity;
@@ -42,32 +45,45 @@ export default function TldrawImageExample({ id }: { id: string }) {
     };
 
     for (const s of shapes) {
-      const sx = typeof s.x === 'number' ? s.x : 0;
-      const sy = typeof s.y === 'number' ? s.y : 0;
+      const sx = typeof (s as any).x === 'number' ? (s as any).x : 0;
+      const sy = typeof (s as any).y === 'number' ? (s as any).y : 0;
 
-      if (typeof s.x === 'number' && typeof s.y === 'number') {
-        const w = s.w ?? s.width ?? s.props?.w ?? s.props?.width ?? 0;
-        const h = s.h ?? s.height ?? s.props?.h ?? s.props?.height ?? 0;
+      if (
+        typeof (s as any).x === 'number' &&
+        typeof (s as any).y === 'number'
+      ) {
+        const w =
+          (s as any).w ??
+          (s as any).width ??
+          (s as any).props?.w ??
+          (s as any).props?.width ??
+          0;
+        const h =
+          (s as any).h ??
+          (s as any).height ??
+          (s as any).props?.h ??
+          (s as any).props?.height ??
+          0;
         push(sx, sy);
         push(sx + w, sy + h);
       }
 
-      if (Array.isArray(s.points)) {
-        for (const p of s.points) {
+      if (Array.isArray((s as any).points)) {
+        for (const p of (s as any).points) {
           if (p && typeof p.x === 'number' && typeof p.y === 'number')
             push(p.x, p.y);
         }
       }
 
-      if (Array.isArray(s.props?.points)) {
-        for (const p of s.props.points) {
+      if (Array.isArray((s as any).props?.points)) {
+        for (const p of (s as any).props.points) {
           if (p && typeof p.x === 'number' && typeof p.y === 'number')
             push(sx + p.x, sy + p.y);
         }
       }
 
-      if (Array.isArray(s.props?.segments)) {
-        for (const seg of s.props.segments) {
+      if (Array.isArray((s as any).props?.segments)) {
+        for (const seg of (s as any).props.segments) {
           const pts = seg?.points || [];
           for (const p of pts) {
             if (p && typeof p.x === 'number' && typeof p.y === 'number')
@@ -83,7 +99,7 @@ export default function TldrawImageExample({ id }: { id: string }) {
       !isFinite(maxX) ||
       !isFinite(maxY)
     ) {
-      return new Box(0, 0, 300, 300);
+      return { viewportPageBounds: new Box(0, 0, 300, 300), canRender: false };
     }
 
     const width = Math.max(1, maxX - minX);
@@ -96,23 +112,34 @@ export default function TldrawImageExample({ id }: { id: string }) {
     const squareMinX = centerX - side / 2;
     const squareMinY = centerY - side / 2;
 
-    return new Box(squareMinX, squareMinY, side, side);
+    return {
+      viewportPageBounds: new Box(squareMinX, squareMinY, side, side),
+      canRender: true,
+    };
   }, [initialSnapshot]);
 
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <LoaderCircle className="animate-spin" />
+      </div>
+    );
+  }
+
+  if (!initialSnapshot || !canRender) {
+    return (
+      <div className="flex items-center justify-center h-full text-sm text-gray-400">
+        No preview available
+      </div>
+    );
+  }
+
   return (
-    <>
-      {initialSnapshot ? (
-        <TldrawImage
-          snapshot={initialSnapshot}
-          bounds={viewportPageBounds}
-          background={false}
-          padding={100}
-        />
-      ) : (
-        <div className="flex items-center justify-center h-full">
-          <LoaderCircle className="animate-spin" />
-        </div>
-      )}
-    </>
+    <TldrawImage
+      snapshot={initialSnapshot as any}
+      bounds={viewportPageBounds}
+      background={false}
+      padding={100}
+    />
   );
 }

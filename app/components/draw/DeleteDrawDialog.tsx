@@ -13,15 +13,13 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { trpc } from '@/server/trpc/client';
+import { Trash } from 'lucide-react';
+import type { Row } from './DrawListingItem';
 
 export default function DeleteDrawDialog({
-  buttonText = 'New Design',
-  buttonVariant = 'vidext',
   id,
   onClose,
 }: {
-  buttonText?: string;
-  buttonVariant?: React.ComponentProps<typeof Button>['variant'];
   id: string;
   onClose: () => void;
 }) {
@@ -31,15 +29,20 @@ export default function DeleteDrawDialog({
   const deleteMutation = trpc.design.delete.useMutation({
     onMutate: async ({ id: deletingId }: { id: string }) => {
       await utils.design.list.cancel();
-      const previous = utils.design.list.getData();
+      const previous = utils.design.list.getData() as Row[] | undefined;
       utils.design.list.setData(undefined, old =>
-        old ? old.filter((r: any) => r.id !== deletingId) : old
+        old ? old.filter((r: Row) => r.id !== deletingId) : old
       );
-      return { previous };
+      return { previous } as { previous?: Row[] | undefined };
     },
-    onError: (_err, _vars, context: any) => {
-      if (context?.previous)
+    onError: (
+      _err: unknown,
+      _vars: { id: string },
+      context?: { previous?: Row[] | undefined }
+    ) => {
+      if (context?.previous) {
         utils.design.list.setData(undefined, context.previous);
+      }
     },
     onSettled: async () => {
       await utils.design.list.invalidate();
@@ -62,7 +65,9 @@ export default function DeleteDrawDialog({
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button variant={buttonVariant}>{buttonText}</Button>
+        <Button variant={'danger'} size="icon" type="button">
+          <Trash size={18} />
+        </Button>
       </DialogTrigger>
 
       <DialogContent className="sm:max-w-[425px]">
