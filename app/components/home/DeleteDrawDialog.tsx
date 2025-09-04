@@ -71,7 +71,7 @@ export default function DeleteDrawDialog({
       </DialogTrigger>
 
       <DialogContent className="sm:max-w-[425px]">
-        <DialogHeader className="gap-2 mb-4">
+        <DialogHeader className="gap-2 mb-4 text-left">
           <DialogTitle>Are you absolutely sure?</DialogTitle>
           <DialogDescription>
             This action cannot be undone, your draw will be deleted.
@@ -79,22 +79,25 @@ export default function DeleteDrawDialog({
         </DialogHeader>
 
         <DialogFooter>
-          <DialogClose asChild>
-            <Button variant="outline" type="button">
-              Cancel
-            </Button>
-          </DialogClose>
+          <div className="flex justify-end gap-2">
+            <DialogClose asChild>
+              <Button variant="outline" type="button">
+                Cancel
+              </Button>
+            </DialogClose>
 
-          <Button
-            onClick={e => {
-              e.preventDefault();
-              e.stopPropagation();
-              handleDelete();
-            }}
-            type="button"
-          >
-            Continue
-          </Button>
+            <Button
+              variant="danger"
+              onClick={e => {
+                e.preventDefault();
+                e.stopPropagation();
+                handleDelete();
+              }}
+              type="button"
+            >
+              Continue
+            </Button>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>

@@ -29,8 +29,8 @@ export default function DrawsListing() {
           Error: {error?.message ?? 'Failed to load'}
         </p>
       ) : data.length === 0 ? (
-        <div className="absolute inset-0 flex flex-col gap-4 items-center justify-center">
-          <h3 className="text-2xl text-gray-700">
+        <div className="absolute inset-0 flex flex-col gap-4 items-center justify-center p-4">
+          <h3 className="text-2xl text-gray-700 text-center">
             Oops! Nothing to see here… time to get creative!
           </h3>
           <NewDrawDialog buttonText="Let's draw!" />
