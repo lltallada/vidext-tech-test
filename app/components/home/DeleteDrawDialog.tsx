@@ -11,7 +11,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from '@/components/ui/dialog';
+} from '@/app/components/ui/dialog';
 import { trpc } from '@/server/trpc/client';
 import { Trash } from 'lucide-react';
 import type { Row } from './DrawListingItem';

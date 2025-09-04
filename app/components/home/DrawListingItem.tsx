@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import React, { memo, useMemo } from 'react';
 import DeleteDrawDialog from './DeleteDrawDialog';
-import TldrawImageExample from '@/app/components/draw/TldrawThumbnail';
+import TldrawImageExample from '@/app/components/home/TldrawThumbnail';
 import 'tldraw/tldraw.css';
 import { Pencil } from 'lucide-react';
 import { Button } from '../ui/button';

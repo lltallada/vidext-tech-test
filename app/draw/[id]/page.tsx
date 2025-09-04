@@ -2,7 +2,7 @@
 
 import { trpc } from '@/server/trpc/client';
 import { useParams } from 'next/navigation';
-import TldrawPage from '@/app/components/draw/TldrawPage';
+import TldrawPage from '@/app/components/editor/TldrawPage';
 import { LoaderCircle } from 'lucide-react';
 
 export default function Page() {

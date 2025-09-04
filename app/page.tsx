@@ -1,8 +1,8 @@
 import React from 'react';
-import DrawsListing from '@/app/components/draw/DrawsListing';
+import DrawsListing from '@/app/components/home/DrawsListing';
 import Header from '@/app/components/ui/Header';
 import Container from './components/ui/Container';
-import NewDrawDialog from './components/draw/NewDrawDialog';
+import NewDrawDialog from './components/home/NewDrawDialog';
 
 export default function Page() {
   return (

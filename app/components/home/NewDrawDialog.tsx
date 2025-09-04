@@ -15,8 +15,8 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
+} from '@/app/components/ui/dialog';
+import { Input } from '@/app/components/ui/input';
 
 export default function NewDrawDialog({
   buttonText = 'New Design',
@@ -43,7 +43,6 @@ export default function NewDrawDialog({
       setError('Please provide a name for the drawing.');
       return;
     }
-    // keep programmatic navigation for Enter/submit
     router.push(`/draw/${encodeURIComponent(name)}`);
   };
 
@@ -58,7 +57,7 @@ export default function NewDrawDialog({
 
       <DialogContent className="sm:max-w-[425px]">
         <form onSubmit={handleSubmit}>
-          <DialogHeader className="gap-2 mb-4">
+          <DialogHeader className="gap-2 mb-4 text-left">
             <DialogTitle>Drawing Info</DialogTitle>
             <DialogDescription>
               Please provide a name for your new drawing.
@@ -83,39 +82,41 @@ export default function NewDrawDialog({
           </div>
 
           <DialogFooter>
-            <DialogClose asChild>
-              <Button variant="outline" type="button">
-                Cancel
-              </Button>
-            </DialogClose>
+            <div className="flex justify-end items-center gap-2">
+              <DialogClose asChild>
+                <Button variant="outline" type="button">
+                  Cancel
+                </Button>
+              </DialogClose>
 
-            <Link
-              href={href}
-              onClick={(e: React.MouseEvent<HTMLAnchorElement>) => {
-                if (!trimmed) {
-                  e.preventDefault();
-                  setError('Please provide a name for the drawing.');
-                } else {
-                  setIsLoading(true);
-                }
-              }}
-              className="inline-block"
-            >
-              <Button
-                type="button"
-                variant="vidext"
-                disabled={isLoading || !trimmed}
+              <Link
+                href={href}
+                onClick={(e: React.MouseEvent<HTMLAnchorElement>) => {
+                  if (!trimmed) {
+                    e.preventDefault();
+                    setError('Please provide a name for the drawing.');
+                  } else {
+                    setIsLoading(true);
+                  }
+                }}
+                className="inline-block"
               >
-                {isLoading ? (
-                  <>
-                    Loading
-                    <LoaderCircle size={14} className="animate-spin ml-2" />
-                  </>
-                ) : (
-                  'Continue'
-                )}
-              </Button>
-            </Link>
+                <Button
+                  type="button"
+                  variant="vidext"
+                  disabled={isLoading || !trimmed}
+                >
+                  {isLoading ? (
+                    <>
+                      Loading
+                      <LoaderCircle size={14} className="animate-spin ml-2" />
+                    </>
+                  ) : (
+                    'Continue'
+                  )}
+                </Button>
+              </Link>
+            </div>
           </DialogFooter>
         </form>
       </DialogContent>
