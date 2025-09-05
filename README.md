@@ -1,6 +1,6 @@
 # Vidext Tech Test
 
-A minimal drawing editor built with **Next.js**, **tldraw**, **Tailwind + shadcn/ui**, and **tRPC**. It provides a clean editor page, type-safe APIs to **load/save drawings**, **auto-saving** after any change.
+A minimal drawing editor built with **Next.js**, **tldraw**, **Tailwind + shadcn/ui**, and **tRPC + React Query**. It provides a clean editor page, type-safe APIs to **load/save drawings** and **auto-saving feature** after any change.
 
 ## Main features
 
@@ -35,9 +35,26 @@ npm run dev
 
 Open http://localhost:3000
 
-5.  **Production:**
+## Testing
+
+This project includes a small, ready-to-run test suite using Vitest. The tests are fast and isolated; you can run them without a browser.
+
+### What these tests cover (high level):
+
+- **API contracts (tRPC):** input validation and the basic success/error paths for design.get, design.save, design.list, and design.delete.
+- **Persistence behavior:** the in-memory store’s CRUD logic (upsert on save, correct updatedAt, and list ordering).
+- **Auto-save logic:** debouncing/coalescing changes, skipping no-ops, and avoiding overlapping saves.
+
+###Run tests locally
+
+Install dependencies:
 
 ```bash
-npm run build
-npm start
+npm install
+```
+
+Run all tests once (CI-style):
+
+```bash
+npx vitest run
 ```
