@@ -1,8 +1,10 @@
-# Vidext Tech Test
+## Vidext Tech Test
 
 A minimal drawing editor built with **Next.js**, **tldraw**, **Tailwind + shadcn/ui**, and **tRPC + React Query**. It provides a clean editor page, type-safe APIs to **load/save drawings** and **auto-saving feature** after any change.
 
-## Main features
+---
+
+### Main features
 
 - **Editor page (tldraw):** draw, select, and edit shapes.
 - **Auto-save:** changes are debounced and saved via tRPC.
@@ -12,7 +14,9 @@ A minimal drawing editor built with **Next.js**, **tldraw**, **Tailwind + shadcn
 - **Drawings list:** view recent drawings with thumbnails and timestamps.
 - **Optional AI translate:** translate selected text/note shapes to English (requires an API key).
 
-## Run locally
+---
+
+### Run locally
 
 1.  **Requirements:** Node 20+, npm.
 2.  **Install:**
@@ -35,7 +39,9 @@ npm run dev
 
 Open http://localhost:3000
 
-## Testing
+---
+
+### Testing
 
 This project includes a small, ready-to-run test suite using Vitest. The tests are fast and isolated; you can run them without a browser.
 
@@ -45,7 +51,7 @@ This project includes a small, ready-to-run test suite using Vitest. The tests a
 - **Persistence behavior:** the in-memory store’s CRUD logic (upsert on save, correct updatedAt, and list ordering).
 - **Auto-save logic:** debouncing/coalescing changes, skipping no-ops, and avoiding overlapping saves.
 
-###Run tests locally
+#### Run tests locally
 
 Install dependencies:
 
