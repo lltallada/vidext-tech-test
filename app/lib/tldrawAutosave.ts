@@ -63,9 +63,6 @@ export function attachTldrawAutosave(
           setStatus('saved');
           setTimeout(() => setStatus('idle'), 800);
         } catch (e) {
-          // keep console usage minimal in lib, but preserve error logging
-          // so tests / dev can surface issues
-          // eslint-disable-next-line no-console
           console.error(e);
           setStatus('error');
         } finally {

@@ -55,10 +55,7 @@ export default function TranslateWithAIButton({ editor }: { editor: any }) {
               (s: any) => s.type === 'text' || s.type === 'note'
             );
 
-            console.log('length', shapesWithText.length);
-
             if (!shapesWithText.length) {
-              console.log('per aquí');
               showHint();
               return;
             }

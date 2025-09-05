@@ -32,7 +32,6 @@ export function useMediaQuery(
     return defaultValue;
   });
 
-  // Handles the change event of the media query.
   function handleChange() {
     setMatches(getMatches(query));
   }
@@ -40,10 +39,8 @@ export function useMediaQuery(
   useIsomorphicLayoutEffect(() => {
     const matchMedia = window.matchMedia(query);
 
-    // Triggered at the first client-side load and if query changes
     handleChange();
 
-    // Use deprecated `addListener` and `removeListener` to support Safari < 14 (#135)
     if (matchMedia.addListener) {
       matchMedia.addListener(handleChange);
     } else {

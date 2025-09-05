@@ -27,7 +27,6 @@ export function getShapeText(s: any): string {
   return s?.props?.text ?? '';
 }
 
-// Build a minimal richText doc from plain text (keeps newlines as paragraphs)
 export function makeRichTextDoc(text: string) {
   const paragraphs = String(text).split(/\r?\n/);
   return {
