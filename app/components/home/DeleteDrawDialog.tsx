@@ -1,20 +1,17 @@
 'use client';
 
 import React, { useState } from 'react';
+import { trpc } from '@/server/trpc/client';
 import { Button } from '../ui/button';
 import {
   Dialog,
-  DialogClose,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
 } from '@/app/components/ui/dialog';
-import { trpc } from '@/server/trpc/client';
 import { Trash } from 'lucide-react';
-import type { Row } from './DrawListingItem';
 
 export default function DeleteDrawDialog({
   id,
@@ -29,23 +26,43 @@ export default function DeleteDrawDialog({
   const deleteMutation = trpc.design.delete.useMutation({
     onMutate: async ({ id: deletingId }: { id: string }) => {
       await utils.design.list.cancel();
-      const previous = utils.design.list.getData() as Row[] | undefined;
+      await utils.design.get.cancel({ id: deletingId });
+
+      const previousList = utils.design.list.getData() as unknown;
+      const previousGet = utils.design.get.getData({
+        id: deletingId,
+      }) as unknown;
+
       utils.design.list.setData(undefined, old =>
-        old ? old.filter((r: Row) => r.id !== deletingId) : old
+        old ? (old as any).filter((r: any) => r.id !== deletingId) : old
       );
-      return { previous } as { previous?: Row[] | undefined };
+
+      utils.design.get.setData({ id: deletingId }, () => ({
+        found: false,
+        snapshot: null,
+        updatedAt: null,
+      }));
+
+      return { previousList, previousGet } as {
+        previousList?: unknown;
+        previousGet?: unknown;
+      };
     },
     onError: (
       _err: unknown,
       _vars: { id: string },
-      context?: { previous?: Row[] | undefined }
+      context?: { previousList?: unknown; previousGet?: unknown }
     ) => {
-      if (context?.previous) {
-        utils.design.list.setData(undefined, context.previous);
+      if (context?.previousList) {
+        utils.design.list.setData(undefined, context.previousList as any);
+      }
+      if (context?.previousGet) {
+        utils.design.get.setData({ id }, () => context.previousGet as any);
       }
     },
     onSettled: async () => {
       await utils.design.list.invalidate();
+      await utils.design.get.invalidate({ id });
       onClose?.();
     },
   });
@@ -73,31 +90,12 @@ export default function DeleteDrawDialog({
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader className="gap-2 mb-4 text-left">
           <DialogTitle>Are you absolutely sure?</DialogTitle>
-          <DialogDescription>
-            This action cannot be undone, your draw will be deleted.
-          </DialogDescription>
         </DialogHeader>
 
         <DialogFooter>
-          <div className="flex justify-end gap-2">
-            <DialogClose asChild>
-              <Button variant="outline" type="button">
-                Cancel
-              </Button>
-            </DialogClose>
-
-            <Button
-              variant="danger"
-              onClick={e => {
-                e.preventDefault();
-                e.stopPropagation();
-                handleDelete();
-              }}
-              type="button"
-            >
-              Continue
-            </Button>
-          </div>
+          <Button variant="danger" onClick={handleDelete}>
+            Delete
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

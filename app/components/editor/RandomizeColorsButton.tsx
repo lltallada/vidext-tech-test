@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { DefaultColorStyle, TldrawEditor as _ } from '@tldraw/tldraw';
 import { Button } from '../ui/button';
-import { useMediaQuery } from '@/hooks/use-media-query';
+import { useMediaQuery } from '@/app/hooks/use-media-query';
 
 type TldrawColor =
   | 'black'

@@ -3,11 +3,11 @@
 import Link from 'next/link';
 import React, { memo, useMemo } from 'react';
 import DeleteDrawDialog from './DeleteDrawDialog';
-import TldrawImageExample from '@/app/components/home/TldrawThumbnail';
+import TldrawImageExample from '@/app/components/home/DrawThumbnail';
 import '@tldraw/tldraw/tldraw.css';
 import { Pencil } from 'lucide-react';
 import { Button } from '../ui/button';
-import { useMediaQuery } from '@/hooks/use-media-query';
+import { useMediaQuery } from '@/app/hooks/use-media-query';
 
 export type Row = { id: string; updatedAt: number; size: number };
 
@@ -23,12 +23,12 @@ function DrawListingItem({ row }: { row: Row }) {
   const isMobile = useMediaQuery('(max-width: 640px)');
 
   return (
-    <li className="bg-white group aspect-square rounded-2xl border border-gray-300 flex items-center justify-center text-gray-500 hover:text-gray-700 hover:border-gray-400 relative overflow-hidden">
-      <div className="absolute inset-0 group-hover:blur-[3px] transition-">
+    <li className="bg-white group aspect-square rounded-lg border border-gray-300 flex items-center justify-center text-gray-500 hover:text-gray-700 hover:border-gray-400 relative overflow-hidden">
+      <div className="absolute inset-0 group-hover:blur-[3px] transition-all">
         <TldrawImageExample id={row.id} />
       </div>
       <div
-        className={`bg-black/10 py-2 px-3 absolute bottom-0 left-0 right-0 flex items-center justify-between
+        className={`bg-gradient-to-b from-transparent to-black/10 p-4 absolute bottom-0 left-0 right-0 flex items-center justify-between
         ${
           !isMobile &&
           ' group-hover:translate-y-0 translate-y-full transition-transform'

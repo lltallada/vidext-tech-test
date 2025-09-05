@@ -6,7 +6,7 @@ import '@tldraw/tldraw/tldraw.css';
 import { LoaderCircle } from 'lucide-react';
 import { useMemo } from 'react';
 
-export default function TldrawImageExample({ id }: { id: string }) {
+export default function DrawThumbnail({ id }: { id: string }) {
   const { data, isLoading, isError, error } = trpc.design.get.useQuery(
     { id: id },
     {

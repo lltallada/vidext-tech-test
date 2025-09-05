@@ -1,10 +1,8 @@
-// app/api/translate/route.ts
 import { NextResponse } from 'next/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
 export async function POST(req: Request) {
   try {
-    // Ensure API key is present at request time (avoid import-time crash)
     const apiKey = process.env.GOOGLE_GENAI_API_KEY;
     if (!apiKey) {
       return NextResponse.json(
@@ -36,7 +34,6 @@ Return ONLY a JSON array of strings, same length and order as input.
 Keep line breaks. If an item is empty, return an empty string for that position.
 Example output: ["...", "..."]`;
 
-    // Ask for strict JSON back:
     const resp = await model.generateContent({
       contents: [
         {
@@ -47,7 +44,6 @@ Example output: ["...", "..."]`;
       generationConfig: { responseMimeType: 'application/json' },
     });
 
-    // Parse JSON array safely
     const raw = resp.response.text();
     let translations: string[];
     try {
@@ -57,7 +53,6 @@ Example output: ["...", "..."]`;
         throw new Error('Length mismatch between input and output');
       }
     } catch (e) {
-      // Fallback: if model wrapped JSON in code fences, try to extract
       const m = raw.match(/\[([\s\S]*)\]/);
       if (!m) throw e;
       translations = JSON.parse(`[${m[1]}]`);

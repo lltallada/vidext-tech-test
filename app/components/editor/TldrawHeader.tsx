@@ -12,7 +12,6 @@ type Props = {
 };
 
 export default function TldrawHeader({ status }: Props) {
-  // useEditor must be invoked inside the editor context (TopPanel is rendered there)
   const editor = useEditor();
 
   return (

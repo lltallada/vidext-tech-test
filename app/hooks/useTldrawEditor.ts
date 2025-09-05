@@ -1,30 +1,45 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { trpc } from '@/server/trpc/client';
-import type { Editor, TLEventMapHandler } from '@tldraw/tldraw';
+import type { Editor } from '@tldraw/tldraw';
 import {
   getSnapshot as tldrawGetSnapshot,
   loadSnapshot as tldrawLoadSnapshot,
 } from '@tldraw/tldraw';
+import { attachTldrawAutosave } from '../lib/tldrawAutosave';
+
+type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
 
 export default function useTldrawEditor(
   designId: string,
   initialSnapshot: unknown | null
 ) {
-  const [status, setStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>(
-    'idle'
-  );
+  const [status, setStatus] = useState<SaveStatus>('idle');
   const editorRef = useRef<Editor | null>(null);
 
   const [editorReady, setEditorReady] = useState(false);
 
   type SaveInput = { id: string; snapshot: unknown };
-  const saveMutation = trpc.design.save.useMutation<SaveInput>();
+  const utils = trpc.useContext();
+
+  const saveMutation = trpc.design.save.useMutation<SaveInput>({
+    onSuccess: (data, variables) => {
+      try {
+        utils.design.get.setData({ id: variables.id }, () => ({
+          found: true,
+          snapshot: variables.snapshot,
+          updatedAt: (data as any)?.updatedAt ?? Date.now(),
+        }));
+        utils.design.list.invalidate();
+      } catch {
+        // swallow cache errors
+      }
+    },
+  });
 
   const lastKnownSnapshotRef = useRef<string | null>(null);
   const lastSavedSnapshotRef = useRef<string | null>(null);
   const debounceTimerRef = useRef<number | null>(null);
   const isSavingRef = useRef(false);
-  const hasPendingSaveRef = useRef(false);
 
   const getSnapshot = useCallback((e = editorRef.current) => {
     if (!e) return null;
@@ -69,86 +84,26 @@ export default function useTldrawEditor(
   );
 
   useEffect(() => {
+    lastSavedSnapshotRef.current = null;
+  }, [designId]);
+
+  useEffect(() => {
     const editor = editorRef.current;
     if (!editor) return;
 
-    const handleChangeEvent: TLEventMapHandler<'change'> = change => {
-      const scheduleSave = () => {
-        if (debounceTimerRef.current) {
-          window.clearTimeout(debounceTimerRef.current);
-        }
-        debounceTimerRef.current = window.setTimeout(async () => {
-          if (isSavingRef.current) return;
-          let snapToSave: any;
-          try {
-            snapToSave = getSnapshot(editor) ?? {};
-          } catch {
-            return;
-          }
-          let snapStr: string;
-          try {
-            snapStr = JSON.stringify(snapToSave);
-          } catch {
-            return;
-          }
-
-          if (lastSavedSnapshotRef.current === snapStr) {
-            return;
-          }
-
-          try {
-            isSavingRef.current = true;
-            setStatus('saving');
-
-            await saveMutation.mutateAsync({
-              id: designId,
-              snapshot: snapToSave,
-            });
-
-            lastSavedSnapshotRef.current = snapStr;
-            lastKnownSnapshotRef.current = snapStr;
-            setStatus('saved');
-            setTimeout(() => setStatus('idle'), 800);
-          } catch (e) {
-            console.error(e);
-            setStatus('error');
-          } finally {
-            isSavingRef.current = false;
-          }
-        }, 500);
-      };
-
-      for (const record of Object.values(change.changes.added)) {
-        if (record.typeName === 'shape') {
-          scheduleSave();
-          break;
-        }
-      }
-
-      // Updated
-      for (const [from, to] of Object.values(change.changes.updated)) {
-        if (from.typeName === 'shape' && to.typeName === 'shape') {
-          scheduleSave();
-          break;
-        }
-      }
-
-      // Removed
-      for (const record of Object.values(change.changes.removed)) {
-        if (record.typeName === 'shape') {
-          scheduleSave();
-          break;
-        }
-      }
-    };
-
-    const cleanupFunction = editor.store.listen(handleChangeEvent, {
-      source: 'user',
-      scope: 'all',
+    const cleanup = attachTldrawAutosave(editor, {
+      designId,
+      getSnapshot,
+      saveMutation,
+      lastSavedSnapshotRef,
+      lastKnownSnapshotRef,
+      debounceTimerRef,
+      isSavingRef,
+      setStatus,
     });
 
     return () => {
-      cleanupFunction();
+      cleanup();
     };
   }, [editorReady]);
 
