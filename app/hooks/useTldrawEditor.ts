@@ -1,5 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { trpc } from '@/server/trpc/client';
+import { useQueryClient } from '@tanstack/react-query';
+import { getQueryKey } from '@trpc/react-query';
+
 import type { Editor } from '@tldraw/tldraw';
 import {
   getSnapshot as tldrawGetSnapshot,
@@ -18,21 +21,31 @@ export default function useTldrawEditor(
 
   const [editorReady, setEditorReady] = useState(false);
 
-  type SaveInput = { id: string; snapshot: unknown };
   const utils = trpc.useContext();
+  const queryClient = useQueryClient();
+  const createdOnceRef = useRef(false);
 
-  const saveMutation = trpc.design.save.useMutation<SaveInput>({
+  const saveMutation = trpc.design.save.useMutation({
     onSuccess: (data, variables) => {
-      try {
-        utils.design.get.setData({ id: variables.id }, () => ({
-          found: true,
-          snapshot: variables.snapshot,
-          updatedAt: (data as any)?.updatedAt ?? Date.now(),
-        }));
-        utils.design.list.invalidate();
-      } catch {
-        // swallow cache errors
-      }
+      const updatedAt = (data as any)?.updatedAt ?? Date.now();
+      utils.design.get.setData({ id: variables.id }, () => ({
+        updatedAt,
+        found: true,
+        snapshot: variables.snapshot,
+      }));
+
+      const isFirstSave = !createdOnceRef.current;
+      if (!isFirstSave) return;
+      createdOnceRef.current = true;
+
+      const listKey = getQueryKey(trpc.design.list, undefined, 'query');
+      queryClient.removeQueries({
+        queryKey: listKey,
+        type: 'inactive',
+        exact: true,
+      });
+
+      utils.design.list.invalidate();
     },
   });
 

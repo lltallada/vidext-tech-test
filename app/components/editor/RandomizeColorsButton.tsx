@@ -82,8 +82,6 @@ export default function RandomizeColorsButton({ editor }: { editor: any }) {
             const previousSelection = [...editor.getSelectedShapeIds()];
             editor.selectAll();
 
-            console.log(editor.getSelectedShapes());
-
             if (editor.getSelectedShapes().length === 0) {
               lastOpenedByClick.current = true;
               setOpen(true);
