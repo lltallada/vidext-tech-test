@@ -8,7 +8,7 @@ A minimal drawing editor built with **Next.js**, **tldraw**, **Tailwind + shadcn
 
 - **Editor page (tldraw):** draw, select, and edit shapes.
 - **Auto-save:** changes are debounced and saved via tRPC.
-- **Temporal Persistence:** storage is in-memory for the test; drawings reset when the server restarts.
+- **Temporal Persistence:** storage is in-memory for the test and persisted locally using localStorage.
 - **Type-safe API (tRPC):** `design.get`, `design.save`, `design.list`, `design.delete` backed by an in-memory store.
 - **Shape action:** “Randomize colors” button updates selected shapes.
 - **Drawings list:** view recent drawings with thumbnails and timestamps.
@@ -53,11 +53,6 @@ This project includes a small, ready-to-run test suite using Vitest. The tests a
 
 #### Run tests locally
 
-Install dependencies:
-
-```bash
-npm install
-```
 
 Run all tests once (CI-style):
 
